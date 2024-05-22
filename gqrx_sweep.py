@@ -1,4 +1,5 @@
 
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.uic import loadUi
 
@@ -10,7 +11,7 @@ import telnetlib
 import time
 
 
-connect = True  # remove later # telnetlib.Telnet 
+connect = True  # remove later # telnetlib.Telnet returns ConnetctionRefusedError, if nobody listens. (Could also use try/except.)
 
 class MainWindow(QMainWindow):
 
@@ -23,16 +24,8 @@ class MainWindow(QMainWindow):
 		self.config.read(configfile)
 		# main
 		self.debugmode = self.config.getboolean('main', 'debugmode')
-		# telnet
-		self.HOST = self.config.get('telnet', 'HOST')
-		self.PORT = self.config.getint('telnet', 'PORT')
-		if self.debugmode:
-			print('HOST = ', self.HOST)
-			print('type(HOST) = ', type(self.HOST))
-			print('PORT = ', self.PORT)
-			print('type(PORT) = ', type(self.PORT))
-			print()			
-		if connect: self.tn = telnetlib.Telnet(self.HOST, self.PORT)
+		# telnet		
+		if connect: self.tn = telnetlib.Telnet(self.config.get('telnet', 'HOST'), self.config.getint('telnet', 'PORT'))
 		# sweep
 		self.centerfreq = self.config.getint('sweep', 'centerfreq')
 		self.start = self.config.getint('sweep', 'start')
@@ -42,17 +35,38 @@ class MainWindow(QMainWindow):
 		self.keyboard_control = self.config.getboolean('sweep', 'keyboard_control')
 
 		### connect PushButtons
-		self.pushButton_startsweep.clicked.connect(self.sweep)
+		self.pushButton_startsweep.clicked.connect(self.sweep_start)
+		self.pushButton_stopsweep.clicked.connect(self.sweep_interrupt)
 
-	def sweep(self):
+		### setup the sweep 
+		self.timer = QTimer() # timer to trigger next step (sweep)
+		self.timer.timeout.connect(self.step_up)
+		self.interrupt = False
+
+	def sweep_start(self):
+		self.interrupt = False
+		timestep_ms = int(self.timestep*1000)
+		self.timer.start(timestep_ms)  # in ms - 1000 means the timer triggers once every second
+		self.freq = self.start
+
+	def step_up(self):
 		'Sweep through the frequency range.'
-		freq = self.start
-		while freq <= self.stop:
-			command = 'F '+str(int(freq*1e6))+'\r\n'
-			if self.debugmode: print(command)
-			if connect: self.tn.write((command.encode('ascii')))
-			freq += self.freqstep
-			time.sleep(self.timestep)
+		if not self.interrupt:
+			if self.freq <= self.stop:
+				self.send_freq()
+				self.freq += self.freqstep
+			else:
+				self.timer.stop()	
+		else:
+			self.timer.stop()
+
+	def sweep_interrupt(self):
+		self.interrupt = True
+
+	def send_freq(self):
+		command = 'F '+str(int(self.freq*1e6))+'\r\n'
+		if self.debugmode: print(command)
+		if connect: self.tn.write((command.encode('ascii')))
 
 
 
