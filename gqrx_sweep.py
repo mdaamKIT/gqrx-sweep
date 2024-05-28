@@ -1,5 +1,5 @@
 
-from PyQt5.QtCore import QTimer, QLocale
+from PyQt5.QtCore import QTimer, QLocale, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QSpinBox, QSlider, QMessageBox
 from PyQt5.uic import loadUi
 
@@ -31,6 +31,8 @@ class MainWindow(QMainWindow):
 
 		### start Telnet TCP connection
 		self.connection = False
+		self.timer_close = QTimer()  # timer to close MainWindow, if desired  -  Workaround, since it seems impossible, to close the Window from __init__(?)
+		self.timer_close.timeout.connect(self.close)
 		self.try_to_connect = True
 		while self.try_to_connect:
 			try:
@@ -38,16 +40,24 @@ class MainWindow(QMainWindow):
 				self.connection = True
 				self.try_to_connect = False
 			except ConnectionRefusedError:
-				answer = QMessageBox.question(
+				answer = QMessageBox.warning(
 					self,
-					"TCP connection failed", 
-					'Connecting to gqrx via Telnet TCP failed.\nBefore trying again, make sure to have gqrx open, enable remote control, and make sure gqrx remote control settings match the settings in config.ini.\nYou can try again now, or close the application and restart it later.\n\nDo you want to try again now?',
-					QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+					'Connecting to gqrx via Telnet TCP failed.', 
+					'Before trying again, make sure to have gqrx open, enable remote control, and check if gqrx remote control settings match the settings in config.ini.\n\nYou can ignore the missing connection, close the application or retry to connect.',
+					QMessageBox.Ignore | QMessageBox.Close | QMessageBox.Retry,
+					QMessageBox.Retry
 					)
-				if answer==QMessageBox.StandardButton.No:
+				if answer==QMessageBox.Ignore:
 					self.try_to_connect = False
 					self.connection = False
+					print()
 					print('Operation without Telnet TCP connection. (Should be quite useless.)')
+				if answer==QMessageBox.Close:
+					self.try_to_connect = False
+					self.timer_close.start(50)
+					print()
+					print('gqrx-sweep closed, due to user input.')
+
 
 		### setup timer for sweep (triggers next step)
 		self.timer = QTimer()
@@ -59,7 +69,7 @@ class MainWindow(QMainWindow):
 		# spinBox for center frequency
 		self.spinBox_mhz.setRange(self.config.getint('sweep', 'minfreq'), self.config.getint('sweep', 'maxfreq'))
 		self.spinBox_mhz.setValue(self.centerfreq)
-		self.send_freq()
+		if self.connection: self.send_freq()
 		self.spinBox_mhz.valueChanged.connect(self.centerfreq_changed)
 		# horizontalSlider for center frequency
 		self.horizontalSlider_mhz.setRange(self.config.getint('sweep', 'minfreq'), self.config.getint('sweep', 'maxfreq'))
@@ -93,16 +103,16 @@ class MainWindow(QMainWindow):
 
 	def sweep_up(self):
 		self.interrupt = False
-		self.sweep_sign = 1
 		timestep_ms = int(self.doubleSpinBox_timestep.value()*1000)
 		self.timer.start(timestep_ms)  # in ms - 1000 means the timer triggers once every second
+		self.sweep_sign = 1
 		self.centerfreq = self.spinBox_lower.value()
 
 	def sweep_down(self):
 		self.interrupt = False
-		self.sweep_sign = -1
 		timestep_ms = int(self.doubleSpinBox_timestep.value()*1000)
 		self.timer.start(timestep_ms)  # in ms - 1000 means the timer triggers once every second
+		self.sweep_sign = -1
 		self.centerfreq = self.spinBox_upper.value()
 
 	def step_up(self):
@@ -120,6 +130,10 @@ class MainWindow(QMainWindow):
 	def sweep_interrupt(self):
 		self.interrupt = True
 
+	def keyPressEvent(self,e):
+		if e.key() == Qt.Key_Escape:  # list of key names: https://doc.qt.io/qtforpython-5/PySide2/QtCore/Qt.html#PySide2.QtCore.PySide2.QtCore.Qt.Key
+			self.sweep_interrupt()
+
 	def send_freq(self):
 		command = 'F '+str(int(self.centerfreq*1e6))+'\r\n'
 		if self.debugmode: print(command)
@@ -127,7 +141,6 @@ class MainWindow(QMainWindow):
 			self.tn.write((command.encode('ascii')))
 		else:
 			print('Command not send due to lacking connection.')
-
 
 
 ### open Window
