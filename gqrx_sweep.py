@@ -53,6 +53,7 @@ class MainWindow(QMainWindow):
 		self.timer = QTimer()
 		self.timer.timeout.connect(self.step_up)
 		self.interrupt = False
+		self.sweep_sign = 1    # should only be +1 (sweep up) or -1 (sweep down)!
 
 		### connect gui elements with functions
 		# spinBox for center frequency
@@ -67,16 +68,17 @@ class MainWindow(QMainWindow):
 		self.horizontalSlider_mhz.setTickInterval(500)
 		self.horizontalSlider_mhz.sliderReleased.connect(self.slider_released)
 		# spinBoxes for sweep
-		self.spinBox_start.setRange(self.config.getint('sweep', 'minfreq'), self.config.getint('sweep', 'maxfreq'))
-		self.spinBox_start.setValue(self.config.getint('sweep', 'start'))
-		self.spinBox_stop.setRange(self.config.getint('sweep', 'minfreq'), self.config.getint('sweep', 'maxfreq'))
-		self.spinBox_stop.setValue(self.config.getint('sweep', 'stop'))
+		self.spinBox_lower.setRange(self.config.getint('sweep', 'minfreq'), self.config.getint('sweep', 'maxfreq'))
+		self.spinBox_lower.setValue(self.config.getint('sweep', 'lower'))
+		self.spinBox_upper.setRange(self.config.getint('sweep', 'minfreq'), self.config.getint('sweep', 'maxfreq'))
+		self.spinBox_upper.setValue(self.config.getint('sweep', 'upper'))
 		self.doubleSpinBox_timestep.setRange(0., 60.)  # hardcoded, since a change should really be unnecessary.
 		self.doubleSpinBox_timestep.setDecimals(1)
 		self.doubleSpinBox_timestep.setSingleStep(0.1)
 		self.doubleSpinBox_timestep.setValue(self.config.getfloat('sweep', 'timestep'))
 		# PushButtons
-		self.pushButton_startsweep.clicked.connect(self.sweep_start)
+		self.pushButton_sweepup.clicked.connect(self.sweep_up)
+		self.pushButton_sweepdown.clicked.connect(self.sweep_down)
 		self.pushButton_stopsweep.clicked.connect(self.sweep_interrupt)
 
 
@@ -89,19 +91,27 @@ class MainWindow(QMainWindow):
 		self.centerfreq = self.horizontalSlider_mhz.value()
 		self.spinBox_mhz.setValue(self.centerfreq)
 
-	def sweep_start(self):
+	def sweep_up(self):
 		self.interrupt = False
+		self.sweep_sign = 1
 		timestep_ms = int(self.doubleSpinBox_timestep.value()*1000)
 		self.timer.start(timestep_ms)  # in ms - 1000 means the timer triggers once every second
-		self.centerfreq = self.spinBox_start.value()
+		self.centerfreq = self.spinBox_lower.value()
+
+	def sweep_down(self):
+		self.interrupt = False
+		self.sweep_sign = -1
+		timestep_ms = int(self.doubleSpinBox_timestep.value()*1000)
+		self.timer.start(timestep_ms)  # in ms - 1000 means the timer triggers once every second
+		self.centerfreq = self.spinBox_upper.value()
 
 	def step_up(self):
 		'Sweep through the frequency range.'
 		if not self.interrupt:
-			if self.centerfreq <= self.spinBox_stop.value():
+			if self.spinBox_lower.value() <= self.centerfreq <= self.spinBox_upper.value():
 				self.horizontalSlider_mhz.setValue(self.centerfreq)
 				self.spinBox_mhz.setValue(self.centerfreq)
-				self.centerfreq += self.freqstep
+				self.centerfreq += self.sweep_sign*self.freqstep
 			else:
 				self.timer.stop()	
 		else:

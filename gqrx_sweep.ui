@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>655</width>
-    <height>301</height>
+    <width>825</width>
+    <height>303</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -205,14 +205,14 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="label_start">
+       <widget class="QLabel" name="label_lower">
         <property name="text">
-         <string>Start:</string>
+         <string>lower limit:</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QSpinBox" name="spinBox_start"/>
+       <widget class="QSpinBox" name="spinBox_lower"/>
       </item>
       <item>
        <widget class="QLabel" name="label_3">
@@ -238,14 +238,14 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="label_stop">
+       <widget class="QLabel" name="label_upper">
         <property name="text">
-         <string>Stop:</string>
+         <string>upper limit:</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QSpinBox" name="spinBox_stop"/>
+       <widget class="QSpinBox" name="spinBox_upper"/>
       </item>
       <item>
        <widget class="QLabel" name="label_4">
@@ -273,7 +273,7 @@
       <item>
        <widget class="QLabel" name="label_timestep">
         <property name="text">
-         <string>Timestep</string>
+         <string>timestep</string>
         </property>
        </widget>
       </item>
@@ -306,16 +306,30 @@
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_ButtonSweep">
         <item>
-         <widget class="QPushButton" name="pushButton_startsweep">
-          <property name="text">
-           <string>Start Sweep</string>
+         <layout class="QHBoxLayout" name="horizontalLayout_StartSweep">
+          <property name="topMargin">
+           <number>0</number>
           </property>
-         </widget>
+          <item>
+           <widget class="QPushButton" name="pushButton_sweepup">
+            <property name="text">
+             <string>sweep up</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_sweepdown">
+            <property name="text">
+             <string>sweep down</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <widget class="QPushButton" name="pushButton_stopsweep">
           <property name="text">
-           <string>Stop Sweep</string>
+           <string>stop sweep</string>
           </property>
          </widget>
         </item>
@@ -356,13 +370,23 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>655</width>
+     <width>825</width>
      <height>22</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <tabstops>
+  <tabstop>spinBox_mhz</tabstop>
+  <tabstop>horizontalSlider_mhz</tabstop>
+  <tabstop>spinBox_lower</tabstop>
+  <tabstop>spinBox_upper</tabstop>
+  <tabstop>doubleSpinBox_timestep</tabstop>
+  <tabstop>pushButton_sweepup</tabstop>
+  <tabstop>pushButton_sweepdown</tabstop>
+  <tabstop>pushButton_stopsweep</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
